@@ -163,4 +163,359 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .note { padding: .75rem .9rem; border-radius: 8px; margin: 1rem 0; font-size: .95rem; }
 .note.info { background: var(--surface-2); border: 1px solid var(--line); }
 .note.ok { background: var(--ok-bg); color: var(--ok); }
-.note.war
+.note.warn { background: var(--warn-bg); color: var(--warn-ink); }
+.review { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .6rem; }
+.review li { border: 1px solid var(--line); border-left-width: 5px; border-radius: 8px; padding: .7rem .85rem; }
+.review li.right { border-left-color: var(--ok); background: var(--ok-bg); }
+.review li.wrong { border-left-color: var(--bad); background: var(--bad-bg); }
+.review .q { font-weight: 600; margin-bottom: .25rem; }
+.review .a { font-size: .92rem; }
+.review .tag { font-weight: 700; }
+.review li.right .tag { color: var(--ok); }
+.review li.wrong .tag { color: var(--bad); }
+h3 { font-size: 1.02rem; margin: 1.75rem 0 .5rem; }
+textarea {
+  width: 100%;
+  min-height: 9.5rem;
+  font-family: Consolas, "Cascadia Mono", Menlo, monospace;
+  font-size: .88rem;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .7rem;
+  resize: vertical;
+}
+.copied { color: var(--ok); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Computer & Office Fundamentals Assessment</h1>
+    <p>15 questions, 1 point each. Maximum score 15.</p>
+  </header>
+
+  <!-- Screen 1: candidate info -->
+  <section id="s-info" class="panel">
+    <h2>Your details</h2>
+    <form id="info-form" novalidate>
+      <label class="field">
+        <span class="lbl">Full name</span>
+        <input id="f-name" type="text" autocomplete="name" required>
+        <div class="err" id="e-name"></div>
+      </label>
+      <label class="field">
+        <span class="lbl">Email</span>
+        <input id="f-email" type="email" autocomplete="email" inputmode="email" required>
+        <div class="err" id="e-email"></div>
+      </label>
+      <label class="field">
+        <span class="lbl">Phone</span>
+        <input id="f-phone" type="tel" autocomplete="tel" inputmode="tel" required>
+        <div class="err" id="e-phone"></div>
+      </label>
+      <div class="row end">
+        <button type="submit" id="btn-start">Start quiz</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Screen 2: quiz -->
+  <section id="s-quiz" class="panel hidden" aria-live="polite">
+    <div class="meta">
+      <span id="q-count"><strong>Question 1 of 15</strong></span>
+      <span id="q-section"></span>
+    </div>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="15" aria-valuenow="1" id="q-bar"><div></div></div>
+    <p class="qtext" id="q-text"></p>
+    <div class="choices" id="q-choices" role="radiogroup" aria-labelledby="q-text"></div>
+    <div class="row between">
+      <button type="button" id="btn-back" class="ghost">Back</button>
+      <button type="button" id="btn-next" disabled>Next</button>
+    </div>
+  </section>
+
+  <!-- Screen 3: results -->
+  <section id="s-results" class="panel hidden">
+    <h2 id="r-thanks">Thanks</h2>
+    <div class="score"><span class="big" id="r-score"></span><span class="pct" id="r-pct"></span></div>
+    <p id="r-msg" style="margin:0"></p>
+    <div id="r-save" class="note info">Saving your submission...</div>
+    <div class="row hidden" id="r-retry-row" style="margin-top:-.25rem;margin-bottom:.5rem">
+      <button type="button" id="btn-retry" class="ghost">Try saving again</button>
+    </div>
+
+    <h3>Answer sheet</h3>
+    <textarea id="r-sheet" readonly aria-label="Answer sheet"></textarea>
+    <div class="row" style="margin-top:.5rem">
+      <button type="button" id="btn-copy" class="ghost">Copy answer sheet</button>
+      <span class="copied" id="copy-msg" aria-live="polite"></span>
+    </div>
+
+    <h3>Review</h3>
+    <ol class="review" id="r-review"></ol>
+
+    <div class="row end" style="margin-top:1.5rem">
+      <button type="button" id="btn-restart">Start over</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* Paste your Google Apps Script web app URL here (ends in /exec). */
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwWMjZLPDkebri2oouuOKQXvZ4Fn9oiMdo3sBqpEPRQuIT0__mg7Tfs_jeLHZxB1_o5SA/exec";
+
+  var LETTERS = ["A", "B", "C", "D"];
+  var QUESTIONS = [
+    { s: "Basic Computer Fundamentals", q: "Which keyboard key is used to delete text to the left of the cursor?", o: ["Delete", "Backspace", "Shift", "Spacebar"], c: 1 },
+    { s: "Basic Computer Fundamentals", q: "What is the standard keyboard shortcut to copy selected text or items?", o: ["Ctrl + X", "Ctrl + V", "Ctrl + C", "Ctrl + P"], c: 2 },
+    { s: "Basic Computer Fundamentals", q: "Which key combination undoes your last action in almost all Office programs?", o: ["Ctrl + Z", "Ctrl + Y", "Ctrl + U", "Ctrl + A"], c: 0 },
+    { s: "Microsoft Word", q: "Which application is best used to write letters, essays, and formal reports?", o: ["Microsoft Excel", "Microsoft PowerPoint", "Microsoft Word", "Microsoft Access"], c: 2 },
+    { s: "Microsoft Word", q: "How do you make selected text bold in Microsoft Word?", o: ["Ctrl + B", "Ctrl + I", "Ctrl + U", "Ctrl + Shift + B"], c: 0 },
+    { s: "Microsoft Word", q: "Which function key checks spelling and grammar in Microsoft Word?", o: ["F1", "F5", "F7", "F12"], c: 2 },
+    { s: "Microsoft Word", q: "What is the default page orientation used in standard Microsoft Word documents?", o: ["Landscape", "Portrait", "Square", "Horizontal"], c: 1 },
+    { s: "Microsoft Excel", q: "In Excel, what are vertical lines identified by letters (A, B, C...) called?", o: ["Rows", "Columns", "Cells", "Sheets"], c: 1 },
+    { s: "Microsoft Excel", q: "All formulas in Microsoft Excel MUST start with which symbol?", o: ["#", "@", "=", "+"], c: 2 },
+    { s: "Microsoft Excel", q: "What is the intersection of a row and a column in Excel called?", o: ["Box", "Block", "Cell", "Node"], c: 2 },
+    { s: "Microsoft Excel", q: "Which basic formula adds all numbers in a selected range of cells?", o: ["=ADD()", "=PLUS()", "=TOTAL()", "=SUM()"], c: 3 },
+    { s: "Microsoft PowerPoint", q: "What is an individual page in a PowerPoint presentation called?", o: ["Document", "Slide", "Worksheet", "Page"], c: 1 },
+    { s: "Microsoft PowerPoint", q: "Which shortcut key is used to start a slide show from the beginning?", o: ["F1", "F5", "Shift + F5", "Esc"], c: 1 },
+    { s: "Microsoft PowerPoint", q: "Which shortcut key inserts a new slide into your current presentation?", o: ["Ctrl + N", "Ctrl + M", "Ctrl + S", "Ctrl + Slide"], c: 1 },
+    { s: "Microsoft PowerPoint", q: "Which key on your keyboard stops an active slide show at any time?", o: ["Spacebar", "Enter", "Esc (Escape)", "Tab"], c: 2 }
+  ];
+  var TOTAL = QUESTIONS.length;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var screens = ["s-info", "s-quiz", "s-results"];
+  function show(id) {
+    screens.forEach(function (s) { var el = $(s); if (el) el.classList.toggle("hidden", s !== id); });
+    window.scrollTo(0, 0);
+  }
+
+  var state = { candidate: null, answers: [], idx: 0 };
+
+  /* ---------- Screen 1 ---------- */
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  function setErr(input, errEl, msg) {
+    $(errEl).textContent = msg;
+    $(input).setAttribute("aria-invalid", msg ? "true" : "false");
+  }
+  $("info-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var name = $("f-name").value.trim();
+    var email = $("f-email").value.trim();
+    var phone = $("f-phone").value.trim();
+    var ok = true;
+
+    setErr("f-name", "e-name", name ? "" : "Enter your full name.");
+    if (!name) ok = false;
+
+    var emailMsg = !email ? "Enter your email." : (EMAIL_RE.test(email) ? "" : "Enter a valid email, like name@example.com.");
+    setErr("f-email", "e-email", emailMsg);
+    if (emailMsg) ok = false;
+
+    var digits = phone.replace(/\D/g, "").length;
+    var phoneMsg = !phone ? "Enter your phone number." : (digits >= 7 ? "" : "Phone number needs at least 7 digits.");
+    setErr("f-phone", "e-phone", phoneMsg);
+    if (phoneMsg) ok = false;
+
+    if (!ok) {
+      var first = document.querySelector('input[aria-invalid="true"]');
+      if (first) first.focus();
+      return;
+    }
+    state.candidate = { name: name, email: email, phone: phone };
+    state.answers = new Array(TOTAL).fill(null);
+    state.idx = 0;
+    renderQuestion();
+    show("s-quiz");
+  });
+
+  /* ---------- Screen 2 ---------- */
+  function renderQuestion() {
+    var i = state.idx, q = QUESTIONS[i];
+    $("q-count").innerHTML = "";
+    var strong = document.createElement("strong");
+    strong.textContent = "Question " + (i + 1) + " of " + TOTAL;
+    $("q-count").appendChild(strong);
+    $("q-section").textContent = q.s;
+    $("q-bar").setAttribute("aria-valuenow", String(i + 1));
+    $("q-bar").firstElementChild.style.width = ((i + 1) / TOTAL * 100) + "%";
+    $("q-text").textContent = q.q;
+
+    var box = $("q-choices");
+    box.innerHTML = "";
+    q.o.forEach(function (text, k) {
+      var lab = document.createElement("label");
+      lab.className = "choice" + (state.answers[i] === k ? " sel" : "");
+      var inp = document.createElement("input");
+      inp.type = "radio";
+      inp.name = "ans";
+      inp.value = String(k);
+      inp.checked = state.answers[i] === k;
+      inp.addEventListener("change", function () {
+        state.answers[i] = k;
+        Array.prototype.forEach.call(box.children, function (el, n) { el.classList.toggle("sel", n === k); });
+        $("btn-next").disabled = false;
+      });
+      var key = document.createElement("span");
+      key.className = "key";
+      key.textContent = LETTERS[k];
+      var t = document.createElement("span");
+      t.textContent = text;
+      lab.appendChild(inp); lab.appendChild(key); lab.appendChild(t);
+      box.appendChild(lab);
+    });
+
+    $("btn-back").disabled = i === 0;
+    $("btn-next").textContent = i === TOTAL - 1 ? "Finish" : "Next";
+    $("btn-next").disabled = state.answers[i] === null;
+  }
+  $("btn-back").addEventListener("click", function () {
+    if (state.idx > 0) { state.idx--; renderQuestion(); }
+  });
+  $("btn-next").addEventListener("click", function () {
+    if (state.answers[state.idx] === null) return;
+    if (state.idx < TOTAL - 1) { state.idx++; renderQuestion(); }
+    else finish();
+  });
+
+  /* ---------- Scoring ---------- */
+  function scoreOf(answers) {
+    var s = 0;
+    for (var i = 0; i < TOTAL; i++) if (answers && answers[i] === QUESTIONS[i].c) s++;
+    return s;
+  }
+  function answerString(answers) {
+    return answers.map(function (a, i) { return (i + 1) + (a === null || a === undefined ? "-" : LETTERS[a]); }).join(" ");
+  }
+
+  /* ---------- Screen 3 ---------- */
+  function finish() {
+    var c = state.candidate, ans = state.answers.slice();
+    var score = scoreOf(ans);
+    var pct = Math.round(score / TOTAL * 100);
+    var ts = new Date().toISOString();
+
+    $("r-thanks").textContent = "Thanks, " + c.name;
+    $("r-score").textContent = score + " / " + TOTAL;
+    $("r-pct").textContent = pct + "%";
+    $("r-msg").textContent = pct >= 80
+      ? "Excellent work. You have a strong grasp of office fundamentals."
+      : pct >= 60
+        ? "Good job. A little more practice will round out your skills."
+        : "Keep practicing. Review the questions below to see where to focus.";
+
+    $("r-sheet").value = [
+      "Computer & Office Fundamentals Assessment",
+      "Name: " + c.name,
+      "Email: " + c.email,
+      "Phone: " + c.phone,
+      "Score: " + score + " / " + TOTAL + " (" + pct + "%)",
+      "Answers: " + answerString(ans),
+      "Submitted: " + ts
+    ].join("\n");
+    $("copy-msg").textContent = "";
+
+    var list = $("r-review");
+    list.innerHTML = "";
+    QUESTIONS.forEach(function (q, i) {
+      var right = ans[i] === q.c;
+      var li = document.createElement("li");
+      li.className = right ? "right" : "wrong";
+      var qd = document.createElement("div");
+      qd.className = "q";
+      qd.textContent = (i + 1) + ". " + q.q;
+      var ad = document.createElement("div");
+      ad.className = "a";
+      var tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = right ? "Correct. " : "Incorrect. ";
+      ad.appendChild(tag);
+      ad.appendChild(document.createTextNode(
+        "Your answer: " + LETTERS[ans[i]] + ") " + q.o[ans[i]] +
+        (right ? "" : ". Correct answer: " + LETTERS[q.c] + ") " + q.o[q.c])
+      ));
+      li.appendChild(qd); li.appendChild(ad);
+      list.appendChild(li);
+    });
+
+    show("s-results");
+    saveSubmission({
+      name: c.name, email: c.email, phone: c.phone,
+      answers: ans, score: score, timestamp: ts
+    });
+  }
+
+  function saveMsg(kind, text) {
+    var el = $("r-save");
+    el.className = "note " + kind;
+    el.textContent = text;
+  }
+  var FALLBACK = "Your answers could not be sent automatically. Please copy the answer sheet below and send it back to the person who shared this assessment.";
+  var lastRecord = null;
+
+  function saveSubmission(rec) {
+    lastRecord = rec;
+    $("r-retry-row").classList.add("hidden");
+    if (!/^https:\/\/script\.google\.com\//.test(SCRIPT_URL)) {
+      saveMsg("warn", FALLBACK + " (Reason: the results address is not set up yet.)");
+      return;
+    }
+    saveMsg("info", "Sending your submission...");
+    var ctrl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 20000);
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(rec),
+      signal: ctrl ? ctrl.signal : undefined
+    }).then(function (res) {
+      if (!res.ok) throw new Error("server responded " + res.status);
+      return res.json();
+    }).then(function (data) {
+      clearTimeout(timer);
+      if (!data || data.ok !== true) throw new Error((data && data.error) || "the server did not confirm the save");
+      saveMsg("ok", "Your submission has been sent. You can also copy the answer sheet below for your records.");
+    }).catch(function (err) {
+      clearTimeout(timer);
+      var reason = err && err.name === "AbortError" ? "the request timed out" :
+        (err && err.message === "Failed to fetch" ? "no connection to the results server" : String(err && err.message || err));
+      saveMsg("warn", FALLBACK + " (Reason: " + reason + ".)");
+      $("r-retry-row").classList.remove("hidden");
+    });
+  }
+  $("btn-retry").addEventListener("click", function () {
+    if (lastRecord) saveSubmission(lastRecord);
+  });
+
+  $("btn-copy").addEventListener("click", function () {
+    var ta = $("r-sheet"), text = ta.value;
+    function done(ok) { $("copy-msg").textContent = ok ? "Copied." : "Select the text and copy it manually."; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallbackCopy(); });
+    } else fallbackCopy();
+    function fallbackCopy() {
+      ta.focus(); ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      done(ok);
+    }
+  });
+
+  $("btn-restart").addEventListener("click", function () {
+    $("info-form").reset();
+    ["f-name", "f-email", "f-phone"].forEach(function (id) { $(id).setAttribute("aria-invalid", "false"); });
+    ["e-name", "e-email", "e-phone"].forEach(function (id) { $(id).textContent = ""; });
+    state = { candidate: null, answers: [], idx: 0 };
+    show("s-info");
+  });
+
+})();
+</script>
+</body>
+</html>
